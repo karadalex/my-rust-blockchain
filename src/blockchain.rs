@@ -3,16 +3,16 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use sqlx::FromRow;
 use crate::utils::*;
 use rocket::{error, get, serde::json::Json, routes};
-use rocket::http::Status;
+use serde::{Deserialize, Serialize};
 
 
 const DIFFICULTY: usize = 5; // Number of leading zeros required in the hash
 
 pub fn routes() -> Vec<rocket::Route> {
-    routes![get_chain_height]
+    routes![get_chain_height, get_block_by_hash]
 }
 
-#[derive(Clone, FromRow)]
+#[derive(Clone, FromRow, Serialize, Deserialize)]
 pub struct Block {
     pub index: i32,
     pub timestamp: f64,
@@ -156,4 +156,26 @@ async fn get_chain_height() -> ApiResult<DataBody<i32>> {
     let height = DataBody { data: blockchain.await.get_height().await };
 
     Ok(Json(height))
+}
+
+
+#[get("/chain/<hash>")]
+async fn get_block_by_hash(hash: String) ->ApiResult<Block> {
+    let pool = db_pool().await;
+
+    let block: Block = sqlx::query_as::<_, Block>(
+        r#"
+        SELECT * FROM blocks
+        WHERE hash = ?;
+        "#
+    )
+    .bind(hash)
+    .fetch_one(&pool)
+    .await
+    .unwrap_or_else(|e| {
+        error!("failed to get block: {}", e);
+        panic!("failed to get block");
+    });
+
+    Ok(Json(block))
 }
