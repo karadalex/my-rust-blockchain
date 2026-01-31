@@ -7,6 +7,7 @@ use std::sync::{Arc, Mutex};
 use sqlx::sqlite::SqlitePoolOptions;
 
 mod blockchain;
+mod utils;
 use blockchain::{Block, Blockchain};
 
 

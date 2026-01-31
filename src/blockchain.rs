@@ -1,8 +1,8 @@
 use sha2::{Digest, Sha256};
 use std::time::{SystemTime, UNIX_EPOCH};
+use sqlx::FromRow;
+use crate::utils::db_pool;
 use rocket::error;
-use sqlx::{FromRow, SqlitePool};
-use sqlx::sqlite::SqlitePoolOptions;
 
 
 const DIFFICULTY: usize = 5; // Number of leading zeros required in the hash
@@ -63,17 +63,7 @@ pub struct Blockchain {
 
 impl Blockchain {
     pub async fn new() -> Self {
-        let database_url =
-            std::env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite://database.sqlite".to_string());
-
-        let pool: SqlitePool = SqlitePoolOptions::new()
-            .max_connections(5)
-            .connect(&database_url)
-            .await
-            .unwrap_or_else(|e| {
-                error!("failed to connect to SQLite at {}: {}", database_url, e);
-                panic!("failed to connect to SQLite");
-            });
+        let pool = db_pool().await;
 
         // Blocks will be either one or zero. Do not fetch them all as this will may cause out of memory issues
         let blocks = sqlx::query_as::<_, Block>(
@@ -106,17 +96,7 @@ impl Blockchain {
         block.mine();
         block.previous_hash = self.blockchain_head.clone().hash;
 
-        let database_url =
-            std::env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite://database.sqlite".to_string());
-
-        let pool: SqlitePool = SqlitePoolOptions::new()
-            .max_connections(5)
-            .connect(&database_url)
-            .await
-            .unwrap_or_else(|e| {
-                error!("failed to connect to SQLite at {}: {}", database_url, e);
-                panic!("failed to connect to SQLite");
-            });
+        let pool = db_pool().await;
 
         let result = sqlx::query(
             r#"
@@ -139,17 +119,7 @@ impl Blockchain {
     }
 
     pub async fn get_height(&mut self) -> i32 {
-        let database_url =
-            std::env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite://database.sqlite".to_string());
-
-        let pool: SqlitePool = SqlitePoolOptions::new()
-            .max_connections(5)
-            .connect(&database_url)
-            .await
-            .unwrap_or_else(|e| {
-                error!("failed to connect to SQLite at {}: {}", database_url, e);
-                panic!("failed to connect to SQLite");
-            });
+        let pool = db_pool().await;
 
         sqlx::query_scalar::<_, i32>(
         r#"
