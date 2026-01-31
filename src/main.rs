@@ -8,6 +8,7 @@ use sqlx::sqlite::SqlitePoolOptions;
 
 mod blockchain;
 mod utils;
+mod transactions;
 use blockchain::{Block, Blockchain};
 
 

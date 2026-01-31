@@ -51,6 +51,14 @@ impl Block {
         }
         println!("Block mined: {}", self.hash);
     }
+
+    pub fn get_transactions(&mut self) {
+        todo!()
+    }
+
+    pub fn merkle_root(&mut self) -> String {
+        todo!()
+    }
 }
 
 

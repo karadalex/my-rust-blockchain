@@ -5,6 +5,8 @@ My-Rust-Blockchain
 
 ```bash
 cargo update
+touch database.sqlite
+sqlx migrate run --database-url sqlite://database.sqlite
 cargo run
 cargo run --bin db_seed
 ```
