@@ -15,7 +15,6 @@ fn index() -> &'static str { "ok" }
 
 async fn cpu_worker(mut shutdown: Shutdown) {
     let blockchain = Arc::new(Mutex::new(Blockchain::new().await));
-    let mut i: i32 = 1;
 
     loop {
         tokio::select! {
@@ -23,22 +22,21 @@ async fn cpu_worker(mut shutdown: Shutdown) {
             _ = async {
                 // Run CPU work on a dedicated blocking thread pool:
                 let blockchain = Arc::clone(&blockchain);
-                let index = i;
                 task::spawn_blocking(move || {
                     let mut blockchain = blockchain.lock().expect("blockchain lock");
                     rocket::tokio::runtime::Handle::current().block_on(async {
-                        blockchain_operations(index, &mut *blockchain).await;
+                        blockchain_operations(&mut *blockchain).await;
                     });
                 }).await.expect("spawn_blocking failed");
             } => {}
         }
-        i += 1;
     }
 }
 
-async fn blockchain_operations(i: i32, blockchain: &mut Blockchain) {
+async fn blockchain_operations(blockchain: &mut Blockchain) {
     let data = "Block {}".to_string();
-    let new_block = Block::new(i, data, String::new());
+    let index = blockchain.get_height().await;
+    let new_block = Block::new(index, data, String::new());
     blockchain.add_block(new_block.clone()).await;
 
     println!(

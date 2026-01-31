@@ -87,8 +87,8 @@ impl Blockchain {
         .fetch_all(&pool)
         .await
         .unwrap_or_else(|e| {
-            error!("failed to insert block: {}", e);
-            panic!("failed to insert block");
+            error!("failed to get block: {}", e);
+            panic!("failed to get block");
         });
 
         // initiliaze blockchain but undo if there are records in the datbase
@@ -133,5 +133,32 @@ impl Blockchain {
             error!("failed to insert block: {}", e);
             panic!("failed to insert block");
         });
+    }
+
+    pub async fn get_height(&mut self) -> i32 {
+        let database_url =
+            std::env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite://database.sqlite".to_string());
+
+        let pool: SqlitePool = SqlitePoolOptions::new()
+            .max_connections(5)
+            .connect(&database_url)
+            .await
+            .unwrap_or_else(|e| {
+                error!("failed to connect to SQLite at {}: {}", database_url, e);
+                panic!("failed to connect to SQLite");
+            });
+
+        sqlx::query_scalar::<_, i32>(
+        r#"
+            SELECT COUNT(*) FROM blocks;        
+            "#,
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap_or_else(|e| {
+            error!("failed to get chain size: {}", e);
+            panic!("failed to get chain size");
+        })
+
     }
 }
