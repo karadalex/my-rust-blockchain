@@ -22,10 +22,10 @@ cargo run --bin db_seed
 7. [ ] On new block creation check if there are pending transactions from a transactions table
 8. [ ] On boot check if the database state is correct and not corrupted
 9. [ ] Support account balances
-10.[x] Store blockchain on database
-11.[ ] Do not allow changing difficulty and get value and increment based on state
-12.[ ] Merkle root of a block transactions
-13.[ ] Database seeding with test data
+10. [x] Store blockchain on database
+11. [ ] Do not allow changing difficulty and get value and increment based on state
+12. [ ] Merkle root of a block transactions
+13. [ ] Database seeding with test data
 
 ## References
 
