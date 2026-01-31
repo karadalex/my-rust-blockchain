@@ -1,8 +1,9 @@
 use sha2::{Digest, Sha256};
 use std::time::{SystemTime, UNIX_EPOCH};
 use sqlx::FromRow;
-use crate::utils::db_pool;
+use crate::utils::*;
 use rocket::{error, get, serde::json::Json, routes};
+use rocket::http::Status;
 
 
 const DIFFICULTY: usize = 5; // Number of leading zeros required in the hash
@@ -150,7 +151,9 @@ impl Blockchain {
 
 
 #[get("/chain/height")]
-async fn get_chain_height() -> String {
+async fn get_chain_height() -> ApiResult<DataBody<i32>> {
     let blockchain = Blockchain::new();
-    blockchain.await.get_height().await.to_string()
+    let height = DataBody { data: blockchain.await.get_height().await };
+
+    Ok(Json(height))
 }
