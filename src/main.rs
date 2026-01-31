@@ -14,7 +14,7 @@ use blockchain::{Block, Blockchain};
 fn index() -> &'static str { "ok" }
 
 async fn cpu_worker(mut shutdown: Shutdown) {
-    let blockchain = Arc::new(Mutex::new(Blockchain::new()));
+    let blockchain = Arc::new(Mutex::new(Blockchain::new().await));
     let mut i: u64 = 1;
 
     loop {
@@ -26,7 +26,9 @@ async fn cpu_worker(mut shutdown: Shutdown) {
                 let index = i;
                 task::spawn_blocking(move || {
                     let mut blockchain = blockchain.lock().expect("blockchain lock");
-                    blockchain_operations(index, &mut *blockchain);
+                    rocket::tokio::runtime::Handle::current().block_on(async {
+                        blockchain_operations(index, &mut *blockchain).await;
+                    });
                 }).await.expect("spawn_blocking failed");
             } => {}
         }
@@ -34,17 +36,15 @@ async fn cpu_worker(mut shutdown: Shutdown) {
     }
 }
 
-fn blockchain_operations(i: u64, blockchain: &mut Blockchain) {
+async fn blockchain_operations(i: u64, blockchain: &mut Blockchain) {
     let data = format!("Block {}", i);
     let new_block = Block::new(i, data, String::new());
-    blockchain.add_block(new_block);
+    blockchain.add_block(new_block.clone()).await;
 
-    if let Some(block) = blockchain.blocks.last() {
-        println!(
-            "Index: {}, Timestamp: {}, Data: {}, Previous Hash: {}, Hash: {}, Nonce: {}",
-            block.index, block.timestamp, block.data, block.previous_hash, block.hash, block.nonce
-        );
-    }
+    println!(
+        "Index: {}, Timestamp: {}, Data: {}, Previous Hash: {}, Hash: {}, Nonce: {}",
+        new_block.index, new_block.timestamp, new_block.data, new_block.previous_hash, new_block.hash, new_block.nonce
+    );
 }
 
 #[launch]
