@@ -1,6 +1,19 @@
 My-Rust-Blockchain
 ==================
 
+## TODO
+
+1. [ ] GET /health
+2. [ ] GET /chain/head
+3. [ ] GET /chain/height
+4. [ ] GET /block/{hash}
+5. [ ] POST /tx (optional)
+6. [ ] POST /mine or /produce_block (if node can author blocks) 
+7. [ ] On new block creation check if there are pending transactions from a transactions table
+8. [ ] On boot check if the database state is correct and not corrupted
+9. [ ] Support account balances
+10.[x] Store blockchain on database
+
 ## References
 
 - [https://www.youtube.com/watch?v=1oJrLNKSVf8](https://www.youtube.com/watch?v=1oJrLNKSVf8)
