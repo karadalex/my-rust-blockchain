@@ -26,6 +26,7 @@ cargo run --bin db_seed
 11. [ ] Do not allow changing difficulty and get value and increment based on state
 12. [ ] Merkle root of a block transactions
 13. [ ] Database seeding with test data
+14. [ ] Allow multiple miners and reward the first one who finds the nonce
 
 ## References
 
