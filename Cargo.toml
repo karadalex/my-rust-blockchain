@@ -2,6 +2,7 @@
 name = "my-rust-blockchain"
 version = "0.1.0"
 edition = "2024"
+default-run = "my-rust-blockchain"
 
 [dependencies]
 chrono = "0.4.43"

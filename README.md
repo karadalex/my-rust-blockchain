@@ -1,6 +1,14 @@
 My-Rust-Blockchain
 ==================
 
+## Instructions
+
+```bash
+cargo update
+cargo run
+cargo run --bin db_seed
+```
+
 ## TODO
 
 1. [ ] GET /health
