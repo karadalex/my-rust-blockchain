@@ -15,7 +15,7 @@ fn index() -> &'static str { "ok" }
 
 async fn cpu_worker(mut shutdown: Shutdown) {
     let blockchain = Arc::new(Mutex::new(Blockchain::new().await));
-    let mut i: u64 = 1;
+    let mut i: i32 = 1;
 
     loop {
         tokio::select! {
@@ -36,8 +36,8 @@ async fn cpu_worker(mut shutdown: Shutdown) {
     }
 }
 
-async fn blockchain_operations(i: u64, blockchain: &mut Blockchain) {
-    let data = format!("Block {}", i);
+async fn blockchain_operations(i: i32, blockchain: &mut Blockchain) {
+    let data = "Block {}".to_string();
     let new_block = Block::new(i, data, String::new());
     blockchain.add_block(new_block.clone()).await;
 

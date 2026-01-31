@@ -1,16 +1,16 @@
 use sha2::{Digest, Sha256};
 use std::time::{SystemTime, UNIX_EPOCH};
 use rocket::error;
-use sqlx::SqlitePool;
+use sqlx::{FromRow, SqlitePool};
 use sqlx::sqlite::SqlitePoolOptions;
 
 
-const DIFFICULTY: usize = 4; // Number of leading zeros required in the hash
+const DIFFICULTY: usize = 5; // Number of leading zeros required in the hash
 
-#[derive(Clone)]
+#[derive(Clone, FromRow)]
 pub struct Block {
-    pub index: u64,
-    pub timestamp: u128,
+    pub index: i32,
+    pub timestamp: f64,
     pub data: String,
     pub previous_hash: String,
     pub hash: String,
@@ -19,11 +19,11 @@ pub struct Block {
 
 
 impl Block {
-    pub fn new(index: u64, data: String, previous_hash: String) -> Self {
+    pub fn new(index: i32, data: String, previous_hash: String) -> Self {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("Time went backwards")
-            .as_millis();
+            .as_secs_f64();
         Block {
             index,
             timestamp,
@@ -63,9 +63,42 @@ pub struct Blockchain {
 
 impl Blockchain {
     pub async fn new() -> Self {
+        let database_url =
+            std::env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite://database.sqlite".to_string());
+
+        let pool: SqlitePool = SqlitePoolOptions::new()
+            .max_connections(5)
+            .connect(&database_url)
+            .await
+            .unwrap_or_else(|e| {
+                error!("failed to connect to SQLite at {}: {}", database_url, e);
+                panic!("failed to connect to SQLite");
+            });
+
+        // Blocks will be either one or zero. Do not fetch them all as this will may cause out of memory issues
+        let blocks = sqlx::query_as::<_, Block>(
+            r#"
+            SELECT idx AS "index", timestamp, data, previous_hash, hash, nonce
+            FROM blocks
+            ORDER BY idx DESC
+            LIMIT 1;
+            "#,
+        )
+        .fetch_all(&pool)
+        .await
+        .unwrap_or_else(|e| {
+            error!("failed to insert block: {}", e);
+            panic!("failed to insert block");
+        });
+
+        // initiliaze blockchain but undo if there are records in the datbase
         let genesis_block = Block::new(0, "Genesis Block".to_string(), "0".to_string());
         let mut blockchain = Blockchain { blockchain_head: genesis_block.clone() };
-        blockchain.add_block(genesis_block.clone()).await;
+        if blocks.is_empty() {
+            blockchain.add_block(genesis_block.clone()).await;
+        } else if let Some(last_block) = blocks.last() {
+            blockchain.blockchain_head = last_block.clone();
+        }
         blockchain
     }
 
