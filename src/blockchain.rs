@@ -2,10 +2,14 @@ use sha2::{Digest, Sha256};
 use std::time::{SystemTime, UNIX_EPOCH};
 use sqlx::FromRow;
 use crate::utils::db_pool;
-use rocket::error;
+use rocket::{error, get, serde::json::Json, routes};
 
 
 const DIFFICULTY: usize = 5; // Number of leading zeros required in the hash
+
+pub fn routes() -> Vec<rocket::Route> {
+    routes![get_chain_height]
+}
 
 #[derive(Clone, FromRow)]
 pub struct Block {
@@ -142,4 +146,11 @@ impl Blockchain {
         })
 
     }
+}
+
+
+#[get("/chain/height")]
+async fn get_chain_height() -> String {
+    let blockchain = Blockchain::new();
+    blockchain.await.get_height().await.to_string()
 }

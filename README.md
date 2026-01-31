@@ -15,7 +15,7 @@ cargo run --bin db_seed
 
 1. [ ] GET /health
 2. [ ] GET /chain/head
-3. [ ] GET /chain/height
+3. [x] GET /chain/height
 4. [ ] GET /block/{hash}
 5. [ ] POST /tx (optional)
 6. [ ] POST /mine or /produce_block (if node can author blocks) 
