@@ -4,6 +4,7 @@ use rocket::fairing::AdHoc;
 use rocket::tokio::{self, task};
 use rocket::Shutdown;
 use std::sync::{Arc, Mutex};
+use sqlx::sqlite::SqlitePoolOptions;
 
 mod blockchain;
 use blockchain::{Block, Blockchain};
@@ -47,7 +48,28 @@ fn blockchain_operations(i: u64, blockchain: &mut Blockchain) {
 }
 
 #[launch]
-fn rocket() -> _ {
+async fn rocket() -> _ {
+    dotenvy::dotenv().ok();
+    
+    // For local dev this could be e.g. "sqlite://app.db"
+    // Or "sqlite::memory:" for in-memory testing.
+    let database_url =
+        std::env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite://database.sqlite".to_string());
+
+    let pool = SqlitePoolOptions::new()
+        .max_connections(5)
+        .connect(&database_url)
+        .await
+        .unwrap_or_else(|e| {
+            error!("failed to connect to SQLite at {}: {}", database_url, e);
+            panic!("failed to connect to SQLite");
+        });
+
+    sqlx::migrate!("./migrations")
+        .run(&pool)
+        .await
+        .expect("migrations failed");
+
     rocket::build()
         .mount("/", routes![index])
         .attach(AdHoc::on_liftoff("spawn cpu worker", |rocket| {
