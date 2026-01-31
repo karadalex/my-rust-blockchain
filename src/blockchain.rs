@@ -104,6 +104,7 @@ impl Blockchain {
 
     pub async fn add_block(&mut self, mut block: Block) {
         block.mine();
+        block.previous_hash = self.blockchain_head.clone().hash;
 
         let database_url =
             std::env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite://database.sqlite".to_string());
@@ -123,9 +124,9 @@ impl Blockchain {
             VALUES (?, ?, ?, ?)
             "#,
         )
-        .bind(block.data)
-        .bind(block.previous_hash)
-        .bind(block.hash)
+        .bind(&block.data)
+        .bind(&block.previous_hash)
+        .bind(&block.hash)
         .bind(block.nonce)
         .execute(&pool)
         .await
@@ -133,6 +134,8 @@ impl Blockchain {
             error!("failed to insert block: {}", e);
             panic!("failed to insert block");
         });
+
+        self.blockchain_head = block.clone();
     }
 
     pub async fn get_height(&mut self) -> i32 {
