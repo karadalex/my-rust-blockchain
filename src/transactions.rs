@@ -8,7 +8,7 @@ use rocket::http::Status;
 
 
 pub fn routes() -> Vec<rocket::Route> {
-    routes![create_transaction]
+    routes![create_transaction, get_wallet_details]
 }
 
 
@@ -128,4 +128,27 @@ async fn create_transaction(transaction: Json<Transaction>) ->ApiResult<Transact
     });
 
     Ok(Json(transaction))
+}
+
+
+#[get("/wallet/<address>")]
+async fn get_wallet_details(address: String) -> ApiResult<Wallet> {
+    let pool = db_pool().await;
+
+    let wallet = sqlx::query_as::<_, Wallet>(
+        r#"
+        SELECT *
+        FROM wallets
+        WHERE address = ?;
+        "#,
+    )
+    .bind(address)
+    .fetch_one(&pool)
+    .await
+    .unwrap_or_else(|e| {
+        error!("failed to get block: {}", e);
+        panic!("failed to get block");
+    });
+
+    Ok(Json(wallet))
 }

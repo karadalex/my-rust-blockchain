@@ -27,7 +27,7 @@ cargo run --bin db_seed
 12. [ ] Merkle root of a block transactions
 13. [ ] Database seeding with test data
 14. [ ] Allow multiple miners and reward the first one who finds the nonce
-15. [ ] GET /wallet/{address}
+15. [x] GET /wallet/{address}
 
 ## References
 
