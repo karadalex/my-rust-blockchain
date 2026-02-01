@@ -4,6 +4,7 @@ use sqlx::FromRow;
 use crate::utils::*;
 use rocket::{error, get, serde::json::Json, routes};
 use serde::{Deserialize, Serialize};
+use crate::transactions::Transaction;
 
 
 const DIFFICULTY: usize = 5; // Number of leading zeros required in the hash
@@ -57,12 +58,67 @@ impl Block {
         println!("Block mined: {}", self.hash);
     }
 
+    pub async fn prepare_unmined_block(&mut self) {
+        let pool = db_pool().await;
+
+        // Blocks will be either one or zero. Do not fetch them all as this will may cause out of memory issues
+        let transactions = sqlx::query_as::<_, Transaction>(
+            r#"
+            SELECT *
+            FROM transactions
+            WHERE block_id IS NULL OR block_id = '';
+            "#,
+        )
+        .fetch_all(&pool)
+        .await
+        .unwrap_or_else(|e| {
+            error!("failed to get block: {}", e);
+            panic!("failed to get block");
+        });
+
+        let json_data = serde_json::to_string(&transactions).unwrap();
+        let merkle_root = self.merkle_root(transactions);
+        self.data = format!("{}{}", merkle_root, json_data);
+    }
+
     pub fn get_transactions(&mut self) {
         todo!()
     }
 
-    pub fn merkle_root(&mut self) -> String {
-        todo!()
+    pub fn merkle_root(&mut self, transactions: Vec<Transaction>) -> String {
+        if transactions.is_empty() {
+            let mut hasher = Sha256::new();
+            hasher.update("");
+            return format!("{:x}", hasher.finalize());
+        }
+
+        let mut hashes: Vec<String> = transactions
+            .into_iter()
+            .map(|tx| {
+                let mut hasher = Sha256::new();
+                let json = serde_json::to_string(&tx).unwrap_or_default();
+                hasher.update(json);
+                format!("{:x}", hasher.finalize())
+            })
+            .collect();
+
+        while hashes.len() > 1 {
+            if hashes.len() % 2 == 1 {
+                let last = hashes.last().cloned().unwrap();
+                hashes.push(last);
+            }
+
+            let mut next = Vec::with_capacity(hashes.len() / 2);
+            for pair in hashes.chunks(2) {
+                let mut hasher = Sha256::new();
+                hasher.update(&pair[0]);
+                hasher.update(&pair[1]);
+                next.push(format!("{:x}", hasher.finalize()));
+            }
+            hashes = next;
+        }
+
+        hashes.pop().unwrap()
     }
 }
 

@@ -19,7 +19,8 @@ pub struct Transaction {
     pub amount: i32,
     pub sig: Option<String>,
     pub added_to_block: Option<bool>,
-    pub created_at: Option<f64>
+    pub created_at: Option<f64>,
+    pub block_id: Option<i32>
 }
 
 #[derive(Clone, FromRow, Serialize, Deserialize)]
@@ -84,6 +85,10 @@ impl Transaction {
         }
 
         Ok(true)
+    }
+
+    pub fn to_json(&self) -> String {
+        serde_json::to_string(self).unwrap()
     }
 }
 
