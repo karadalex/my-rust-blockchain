@@ -28,6 +28,7 @@ cargo run --bin db_seed
 13. [ ] Database seeding with test data
 14. [ ] Allow multiple miners and reward the first one who finds the nonce
 15. [x] GET /wallet/{address}
+16. [ ] Peer-to-peer and share transactions that will be added to a block and share the mined block
 
 ## References
 

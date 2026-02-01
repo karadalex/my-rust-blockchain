@@ -37,23 +37,25 @@ impl Transaction {
     pub async fn is_valid(&self) -> Result<bool, (Status, Json<ErrorBody>)> {
         let pool = db_pool().await;
 
-        let from_exists: i64 = sqlx::query_scalar(
-            r#"
-            SELECT EXISTS(
-                SELECT 1
+        let from_wallet = sqlx::query_as::<_, Wallet>(
+        r#"
+                SELECT *
                 FROM wallets
-                WHERE address = ?
-            );
-            "#,
-        )
-        .bind(&self.from_address)
-        .fetch_one(&pool)
-        .await
-        .map_err(|e| {
-            error!("failed to check from wallet: {}", e);
-            error_response!(Status::InternalServerError, "failed to check from wallet")
-        })?;
-        if from_exists == 0 {
+                WHERE address = ?;
+                "#,
+            )
+            .bind(&self.from_address)
+            .fetch_optional(&pool)
+            .await
+            .unwrap_or_else(|e| {
+                error!("failed to get block: {}", e);
+                panic!("failed to get block");
+            });
+        let from_wallet = match from_wallet {
+            Some(wallet) => wallet,
+            None => return Ok(false),
+        };
+        if self.amount > from_wallet.balance {
             return Ok(false);
         }
 
