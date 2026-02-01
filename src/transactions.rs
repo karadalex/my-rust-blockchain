@@ -16,6 +16,7 @@ pub struct Transaction {
     pub to_address: String,
     pub amount: i32,
     pub sig: Option<String>,
+    pub added_to_block: Option<bool>,
     pub created_at: Option<f64>
 }
 
@@ -53,15 +54,16 @@ async fn create_transaction(transaction: Json<Transaction>) ->ApiResult<Transact
 
     let transaction: Transaction = sqlx::query_as::<_, Transaction>(
         r#"
-        INSERT INTO transactions (from_address, to_address, amount, sig)
-        VALUES (?, ?, ?, ?)
-        RETURNING from_address, to_address, amount, sig, created_at;
+        INSERT INTO transactions (from_address, to_address, amount, sig, added_to_block)
+        VALUES (?, ?, ?, ?, ?)
+        RETURNING from_address, to_address, amount, sig, added_to_block, created_at;
         "#
     )
     .bind(&transaction.from_address)
     .bind(&transaction.to_address)
     .bind(transaction.amount)
     .bind(signature)
+    .bind(false)
     .fetch_one(&pool)
     .await
     .unwrap_or_else(|e| {
