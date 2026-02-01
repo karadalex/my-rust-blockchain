@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::transactions::Transaction;
 
 
-const DIFFICULTY: usize = 5; // Number of leading zeros required in the hash
+const DIFFICULTY: usize = 4; // Number of leading zeros required in the hash
 
 pub fn routes() -> Vec<rocket::Route> {
     routes![get_chain_height, get_block_by_hash, get_block_transactions]
@@ -26,19 +26,22 @@ pub struct Block {
 
 
 impl Block {
-    pub fn new(idx: i32, data: String, previous_hash: String) -> Self {
+    pub async fn new(idx: i32, previous_hash: String) -> Self {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("Time went backwards")
             .as_secs_f64();
-        Block {
+        let mut block = Block {
             idx,
             timestamp,
-            data,
+            data: "".to_string(),
             previous_hash,
             hash: String::new(),
             nonce: 0,
-        }
+        };
+
+        block.prepare_unmined_block().await;
+        block
     }
 
     pub fn calculate_hash(&self) -> String {
@@ -169,10 +172,10 @@ impl Blockchain {
         });
 
         // initiliaze blockchain but undo if there are records in the datbase
-        let genesis_block = Block::new(0, "Genesis Block".to_string(), "0".to_string());
+        let genesis_block = Block::new(0, "0".to_string()).await;
         let mut blockchain = Blockchain { blockchain_head: genesis_block.clone() };
         if blocks.is_empty() {
-            blockchain.add_block(genesis_block.clone()).await;
+            blockchain.add_block(genesis_block).await;
         } else if let Some(last_block) = blocks.last() {
             blockchain.blockchain_head = last_block.clone();
         }

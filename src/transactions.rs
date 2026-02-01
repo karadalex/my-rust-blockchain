@@ -119,7 +119,7 @@ async fn create_transaction(transaction: Json<Transaction>) ->ApiResult<Transact
         r#"
         INSERT INTO transactions (from_address, to_address, amount, sig, added_to_block)
         VALUES (?, ?, ?, ?, ?)
-        RETURNING from_address, to_address, amount, sig, added_to_block, created_at;
+        RETURNING from_address, to_address, amount, sig, added_to_block, created_at, block_id;
         "#
     )
     .bind(&transaction.from_address)
