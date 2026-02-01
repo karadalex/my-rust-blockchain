@@ -43,7 +43,7 @@ async fn blockchain_operations(blockchain: &mut Blockchain) {
 
     println!(
         "Index: {}, Timestamp: {}, Data: {}, Previous Hash: {}, Hash: {}, Nonce: {}",
-        new_block.index, new_block.timestamp, new_block.data, new_block.previous_hash, new_block.hash, new_block.nonce
+        new_block.idx, new_block.timestamp, new_block.data, new_block.previous_hash, new_block.hash, new_block.nonce
     );
 }
 

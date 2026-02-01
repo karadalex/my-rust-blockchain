@@ -1,3 +1,4 @@
+use rand::seq::index;
 use sha2::{Digest, Sha256};
 use std::time::{SystemTime, UNIX_EPOCH};
 use sqlx::FromRow;
@@ -10,12 +11,12 @@ use crate::transactions::Transaction;
 const DIFFICULTY: usize = 5; // Number of leading zeros required in the hash
 
 pub fn routes() -> Vec<rocket::Route> {
-    routes![get_chain_height, get_block_by_hash]
+    routes![get_chain_height, get_block_by_hash, get_block_transactions]
 }
 
 #[derive(Clone, FromRow, Serialize, Deserialize)]
 pub struct Block {
-    pub index: i32,
+    pub idx: i32,
     pub timestamp: f64,
     pub data: String,
     pub previous_hash: String,
@@ -25,13 +26,13 @@ pub struct Block {
 
 
 impl Block {
-    pub fn new(index: i32, data: String, previous_hash: String) -> Self {
+    pub fn new(idx: i32, data: String, previous_hash: String) -> Self {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("Time went backwards")
             .as_secs_f64();
         Block {
-            index,
+            idx,
             timestamp,
             data,
             previous_hash,
@@ -42,7 +43,7 @@ impl Block {
 
     pub fn calculate_hash(&self) -> String {
         let mut hasher = Sha256::new();
-        hasher.update(self.index.to_string());
+        hasher.update(self.idx.to_string());
         hasher.update(self.timestamp.to_string());
         hasher.update(&self.data);
         hasher.update(&self.previous_hash);
@@ -81,8 +82,25 @@ impl Block {
         self.data = format!("{}{}", merkle_root, json_data);
     }
 
-    pub fn get_transactions(&mut self) {
-        todo!()
+    pub async fn get_transactions(&mut self) -> Vec<Transaction> {
+        let pool = db_pool().await;
+
+        let transactions = sqlx::query_as::<_, Transaction>(
+            r#"
+            SELECT *
+            FROM transactions
+            WHERE block_id = ?;
+            "#,
+        )
+        .bind(self.idx)
+        .fetch_all(&pool)
+        .await
+        .unwrap_or_else(|e| {
+            error!("failed to get block: {}", e);
+            panic!("failed to get block");
+        });
+
+        transactions
     }
 
     pub fn merkle_root(&mut self, transactions: Vec<Transaction>) -> String {
@@ -137,7 +155,7 @@ impl Blockchain {
         // Blocks will be either one or zero. Do not fetch them all as this will may cause out of memory issues
         let blocks = sqlx::query_as::<_, Block>(
             r#"
-            SELECT idx AS "index", timestamp, data, previous_hash, hash, nonce
+            SELECT idx, timestamp, data, previous_hash, hash, nonce
             FROM blocks
             ORDER BY idx DESC
             LIMIT 1;
@@ -215,17 +233,17 @@ async fn get_chain_height() -> ApiResult<DataBody<i32>> {
 }
 
 
-#[get("/chain/<hash>")]
-async fn get_block_by_hash(hash: String) ->ApiResult<Block> {
+#[get("/chain/<id>")]
+async fn get_block_by_hash(id: i32) ->ApiResult<Block> {
     let pool = db_pool().await;
 
     let block: Block = sqlx::query_as::<_, Block>(
         r#"
         SELECT * FROM blocks
-        WHERE hash = ?;
+        WHERE idx = ?;
         "#
     )
-    .bind(hash)
+    .bind(id)
     .fetch_one(&pool)
     .await
     .unwrap_or_else(|e| {
@@ -234,4 +252,28 @@ async fn get_block_by_hash(hash: String) ->ApiResult<Block> {
     });
 
     Ok(Json(block))
+}
+
+
+#[get("/chain/<id>/txs")]
+async fn get_block_transactions(id: i32) -> ApiResult<Vec<Transaction>> {
+    let pool = db_pool().await;
+
+    let mut block: Block = sqlx::query_as::<_, Block>(
+        r#"
+        SELECT * FROM blocks
+        WHERE idx = ?;
+        "#
+    )
+    .bind(id)
+    .fetch_one(&pool)
+    .await
+    .unwrap_or_else(|e| {
+        error!("failed to get block: {}", e);
+        panic!("failed to get block");
+    });
+
+    let transactions = block.get_transactions().await;
+
+    Ok(Json(transactions))
 }
