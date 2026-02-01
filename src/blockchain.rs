@@ -1,4 +1,3 @@
-use rand::seq::index;
 use sha2::{Digest, Sha256};
 use std::time::{SystemTime, UNIX_EPOCH};
 use sqlx::FromRow;
@@ -188,7 +187,7 @@ impl Blockchain {
 
         let pool = db_pool().await;
 
-        let result = sqlx::query(
+        let _result = sqlx::query(
             r#"
             INSERT INTO blocks (data, previous_hash, hash, nonce)
             VALUES (?, ?, ?, ?)
@@ -206,6 +205,21 @@ impl Blockchain {
         });
 
         self.blockchain_head = block.clone();
+
+        let _transactions = sqlx::query_as::<_, Transaction>(
+            r#"
+            UPDATE transactions
+            SET block_id = ?
+            WHERE block_id IS NULL OR block_id = '';
+            "#,
+        )
+        .bind(block.idx)
+        .fetch_all(&pool)
+        .await
+        .unwrap_or_else(|e| {
+            error!("failed to get block: {}", e);
+            panic!("failed to get block");
+        });
     }
 
     pub async fn get_height(&mut self) -> i32 {
