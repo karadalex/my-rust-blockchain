@@ -14,7 +14,7 @@ cargo run --bin db_seed
 ## TODO
 
 1. [ ] GET /health
-2. [ ] GET /chain/head
+2. [x] GET /chain/head
 3. [x] GET /chain/height
 4. [x] GET /chain/{index}
 5. [x] POST /tx (optional)

@@ -10,7 +10,7 @@ use crate::transactions::Transaction;
 const DIFFICULTY: usize = 4; // Number of leading zeros required in the hash
 
 pub fn routes() -> Vec<rocket::Route> {
-    routes![get_chain_height, get_block_by_hash, get_block_transactions]
+    routes![get_chain_height, get_block_by_hash, get_block_transactions, get_head_block]
 }
 
 #[derive(Clone, FromRow, Serialize, Deserialize)]
@@ -251,7 +251,7 @@ async fn get_chain_height() -> ApiResult<DataBody<i32>> {
 
 
 #[get("/chain/<id>")]
-async fn get_block_by_hash(id: i32) ->ApiResult<Block> {
+async fn get_block_by_hash(id: i32) -> ApiResult<Block> {
     let pool = db_pool().await;
 
     let block: Block = sqlx::query_as::<_, Block>(
@@ -261,6 +261,27 @@ async fn get_block_by_hash(id: i32) ->ApiResult<Block> {
         "#
     )
     .bind(id)
+    .fetch_one(&pool)
+    .await
+    .unwrap_or_else(|e| {
+        error!("failed to get block: {}", e);
+        panic!("failed to get block");
+    });
+
+    Ok(Json(block))
+}
+
+#[get("/chain/head")]
+async fn get_head_block() -> ApiResult<Block> {
+    let pool = db_pool().await;
+
+    let block: Block = sqlx::query_as::<_, Block>(
+        r#"
+        SELECT * FROM blocks
+        ORDER BY idx DESC
+        LIMIT 1;
+        "#
+    )
     .fetch_one(&pool)
     .await
     .unwrap_or_else(|e| {
