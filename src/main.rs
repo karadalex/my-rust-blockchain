@@ -73,6 +73,7 @@ async fn rocket() -> _ {
     rocket::build()
         .mount("/", routes![index])
         .mount("/", blockchain::routes())
+        .mount("/", transactions::routes())
         .attach(AdHoc::on_liftoff("spawn cpu worker", |rocket| {
             Box::pin(async move {
                 tokio::spawn(cpu_worker(rocket.shutdown()));
