@@ -1,8 +1,10 @@
 use sqlx::FromRow;
 use crate::utils::*;
+use crate::error_response;
 use rocket::{error, get, post, serde::json::Json, routes};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use rocket::http::Status;
 
 
 pub fn routes() -> Vec<rocket::Route> {
@@ -20,7 +22,7 @@ pub struct Transaction {
     pub created_at: Option<f64>
 }
 
-#[derive(Clone, FromRow)]
+#[derive(Clone, FromRow, Serialize, Deserialize)]
 pub struct Wallet {
     pub address: String,
     pub balance: i32,
@@ -30,6 +32,56 @@ pub struct Wallet {
 impl Transaction {
     pub fn new() -> Self {
         todo!()
+    }
+
+    pub async fn is_valid(&self) -> Result<bool, (Status, Json<ErrorBody>)> {
+        let pool = db_pool().await;
+
+        let from_exists: i64 = sqlx::query_scalar(
+            r#"
+            SELECT EXISTS(
+                SELECT 1
+                FROM wallets
+                WHERE address = ?
+            );
+            "#,
+        )
+        .bind(&self.from_address)
+        .fetch_one(&pool)
+        .await
+        .map_err(|e| {
+            error!("failed to check from wallet: {}", e);
+            error_response!(Status::InternalServerError, "failed to check from wallet")
+        })?;
+        if from_exists == 0 {
+            return Ok(false);
+        }
+
+        let to_exists: i64 = sqlx::query_scalar(
+            r#"
+            SELECT EXISTS(
+                SELECT 1
+                FROM wallets
+                WHERE address = ?
+            );
+            "#,
+        )
+        .bind(&self.to_address)
+        .fetch_one(&pool)
+        .await
+        .map_err(|e| {
+            error!("failed to check to wallet: {}", e);
+            error_response!(Status::InternalServerError, "failed to check to wallet")
+        })?;
+        if to_exists == 0 {
+            return Ok(false);
+        }
+
+        if self.amount < 0 {
+            return Ok(false);
+        }
+
+        Ok(true)
     }
 }
 
@@ -43,6 +95,10 @@ impl Wallet {
 #[post("/tx", data="<transaction>")]
 async fn create_transaction(transaction: Json<Transaction>) ->ApiResult<Transaction> {
     let pool = db_pool().await;
+    let is_valid_tx = transaction.is_valid().await?;
+    if !is_valid_tx {
+        return Err(error_response!(Status::NotFound, "transaction not valid"))
+    }
 
     let mut hasher = Sha256::new();
     hasher.update(&transaction.from_address);
