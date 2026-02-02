@@ -171,7 +171,7 @@ impl Blockchain {
         });
 
         // initiliaze blockchain but undo if there are records in the datbase
-        let genesis_block = Block::new(0, "0".to_string()).await;
+        let genesis_block = Block::new(0, "".to_string()).await;
         let mut blockchain = Blockchain { blockchain_head: genesis_block.clone() };
         if blocks.is_empty() {
             blockchain.add_block(genesis_block).await;

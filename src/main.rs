@@ -5,11 +5,14 @@ use rocket::tokio::{self, task};
 use rocket::Shutdown;
 use std::sync::{Arc, Mutex};
 use sqlx::sqlite::SqlitePoolOptions;
+use rocket::error as rocket_error;
 
 mod blockchain;
 mod utils;
 mod transactions;
 use blockchain::{Block, Blockchain};
+
+use crate::utils::verify_db_state_streaming;
 
 
 #[get("/")]
@@ -68,6 +71,13 @@ async fn rocket() -> _ {
         .run(&pool)
         .await
         .expect("migrations failed");
+
+    // New: verify DB health and application-level chain consistency on boot.
+    if let Err(e) = verify_db_state_streaming().await {
+        // Fail fast — do not start the server with a corrupted DB.
+        rocket_error!("database verification failed on boot: {}", e);
+        panic!("database verification failed on boot: {}", e);
+    }
 
     rocket::build()
         .mount("/", routes![index])
