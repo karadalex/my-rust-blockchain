@@ -10,7 +10,7 @@ use crate::transactions::Transaction;
 const DIFFICULTY: usize = 5; // Number of leading zeros required in the hash
 
 pub fn routes() -> Vec<rocket::Route> {
-    routes![get_chain_height, get_block_by_hash, get_block_transactions, get_head_block]
+    routes![get_chain_height, get_block_by_hash, get_block_transactions, get_head_block, healthcheck]
 }
 
 #[derive(Clone, FromRow, Serialize, Deserialize)]
@@ -314,4 +314,15 @@ async fn get_block_transactions(id: i32) -> ApiResult<Vec<Transaction>> {
     let transactions = block.get_transactions().await;
 
     Ok(Json(transactions))
+}
+
+#[get("/health")]
+async fn healthcheck() -> ApiResult<DataBody<bool>> {
+    if let Err(_e) = verify_db_state_streaming().await {
+        let health = DataBody { data: false};
+        Ok(Json(health))
+    } else {
+        let health = DataBody { data: true};
+        Ok(Json(health))
+    }
 }

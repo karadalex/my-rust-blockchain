@@ -13,7 +13,7 @@ cargo run --bin db_seed
 
 ## TODO
 
-1. [ ] GET /health
+1. [x] GET /health
 2. [x] GET /chain/head
 3. [x] GET /chain/height
 4. [x] GET /chain/{index}
