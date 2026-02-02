@@ -31,9 +31,9 @@ pub struct Wallet {
 }
 
 impl Transaction {
-    pub fn new() -> Self {
-        todo!()
-    }
+    // pub fn new() -> Self {
+    //     todo!()
+    // }
 
     pub async fn is_valid(&self) -> Result<bool, (Status, Json<ErrorBody>)> {
         let pool = db_pool().await;
@@ -92,11 +92,11 @@ impl Transaction {
     }
 }
 
-impl Wallet {
-    pub fn new() -> Self {
-        todo!()
-    }
-}
+// impl Wallet {
+//     pub fn new() -> Self {
+//         todo!()
+//     }
+// }
 
 
 #[post("/tx", data="<transaction>")]

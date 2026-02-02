@@ -116,7 +116,7 @@ impl Block {
             .into_iter()
             .map(|tx| {
                 let mut hasher = Sha256::new();
-                let json = serde_json::to_string(&tx).unwrap_or_default();
+                let json = tx.to_json();
                 hasher.update(json);
                 format!("{:x}", hasher.finalize())
             })

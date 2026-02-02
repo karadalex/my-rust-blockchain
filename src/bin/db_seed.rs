@@ -1,6 +1,5 @@
-use rocket_db_pools::sqlx::{self, sqlite::SqlitePoolOptions};
+use rocket_db_pools::sqlx;
 use my_rust_blockchain::utils::*;
-use my_rust_blockchain::transactions::*;
 use rand::{distr::Alphanumeric, Rng};
 use rocket::error;
 
