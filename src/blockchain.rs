@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::transactions::Transaction;
 
 
-const DIFFICULTY: usize = 4; // Number of leading zeros required in the hash
+const DIFFICULTY: usize = 5; // Number of leading zeros required in the hash
 
 pub fn routes() -> Vec<rocket::Route> {
     routes![get_chain_height, get_block_by_hash, get_block_transactions, get_head_block]

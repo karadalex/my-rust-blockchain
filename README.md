@@ -21,7 +21,7 @@ cargo run --bin db_seed
 6. [ ] POST /mine or /produce_block (if node can author blocks) 
 7. [x] On new block creation check if there are pending transactions from a transactions table
 8. [x] On boot check if the database state is correct and not corrupted
-9. [ ] Support account balances
+9. [x] Support wallet balances
 10. [x] Store blockchain on database
 11. [ ] Do not allow changing difficulty and get value and increment based on state
 12. [x] Merkle root of a block transactions

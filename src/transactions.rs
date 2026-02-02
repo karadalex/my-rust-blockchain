@@ -107,14 +107,56 @@ async fn create_transaction(transaction: Json<Transaction>) ->ApiResult<Transact
         return Err(error_response!(Status::NotFound, "transaction not valid"))
     }
 
+    // Calculate transaction hash (will bre raplaced with signateure calculated with private key)
     let mut hasher = Sha256::new();
     hasher.update(&transaction.from_address);
     hasher.update(&transaction.to_address);
     hasher.update(transaction.amount.to_string());
     let signature = format!("{:x}", hasher.finalize());
 
-    // TODO: Check if addresses exist
+    // Reduce from_wallet and increase to_wallet by the same amount
+    let from_result = sqlx::query(
+        r#"
+        UPDATE wallets
+        SET balance = balance - ?
+        WHERE address = ?
+        RETURNING *;
+        "#,
+    )
+    .bind(&transaction.amount)
+    .bind(&transaction.from_address)
+    .execute(&pool)
+    .await
+    .map_err(|e| {
+        error!("failed to update from wallet: {}", e);
+        error_response!(Status::InternalServerError, "failed to update from wallet")
+    })?;
+    if from_result.rows_affected() == 0 {
+        return Err(error_response!(Status::NotFound, "from wallet not found"));
+    }
 
+    let to_result = sqlx::query(
+        r#"
+        UPDATE wallets
+        SET balance = balance + ?
+        WHERE address = ?
+        RETURNING *;
+        "#,
+    )
+    .bind(&transaction.amount)
+    .bind(&transaction.to_address)
+    .execute(&pool)
+    .await
+    .map_err(|e| {
+        error!("failed to update to wallet: {}", e);
+        error_response!(Status::InternalServerError, "failed to update to wallet")
+    })?;
+    if to_result.rows_affected() == 0 {
+        return Err(error_response!(Status::NotFound, "to wallet not found"));
+    }
+
+    
+    // Create transaction
     let transaction: Transaction = sqlx::query_as::<_, Transaction>(
         r#"
         INSERT INTO transactions (from_address, to_address, amount, sig, added_to_block)
